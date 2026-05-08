@@ -1,28 +1,46 @@
 ---
 name: git-push-jira
-description: "Git push + transicionar issues en Jira. Automatiza el flujo de inicio y cierre de tareas: commit con referencia, push, transicionar issue. Trigger: pushear y cerrar tarea, iniciar tarea, marcar como listo."
+description: "INICIAR tarea (transicionar issue a En curso, crear rama), CERRAR tarea (commit con reference + push + transicionar a Listo). Trigger: mencionar issue key (CSTR-42), 'vamos a trabajar', 'empecemos con', 'pushea y cerra', 'marcar como listo', 'subí los cambios', 'cerrá la tarjeta'. CUALQUIER formato {PROJECT}-{NUM} activa este skill."
 license: MIT
 metadata:
   author: jtelg
-  version: "1.1"
+  version: "1.2"
 ---
 
 # SKILL: Git Push + Jira Close + Transiciones
 
-> Automatiza el flujo de cierre de tareas: commit con referencia, push,
-> transicionar issue en Jira. Detecta el proyecto automáticamente.
+> Automatiza el flujo completo: iniciar tarea → commit + push → cerrar issue.
+> Detecta el proyecto automáticamente desde el repo Git.
+
+---
+
+## ⚠️ REGLA DE ORO: ACTIVACIÓN AUTOMÁTICA
+
+**Cuando el usuario mencione un issue key de Jira** (ej: `CSTR-42`, `FONTE-7`, `MXTS-123`)
+**en cualquier contexto**, este skill DEBE activarse:
+
+- Si dice **"vamos con CSTR-42"** o **"empecemos CSTR-42"** → seguir **🟢 INICIAR TAREA**
+- Si dice **"pusheá y cerrá CSTR-42"** o **"terminé con CSTR-42"** → seguir **✅ CERRAR TAREA + PUSH**
+- Si solo dice el **issue key suelto** (ej: "CSTR-42") → asumir que quiere **iniciar la tarea**, preguntar si no está seguro
+
+**NO ESPERES a que el usuario pida explícitamente.** Si menciona un issue key,
+cargá este skill y ejecutá el flujo que corresponda.
+
+---
 
 ## When to Use
 
-Use this skill when the user wants to start working on a task, commit changes,
-push to remote, or transition a Jira issue.
+Use this skill when the user:
+- Mentions a Jira issue key (`{PROJECT}-{NUM}`) — **siempre**
+- Wants to start working on a task
+- Wants to commit, push, or close a task
 
-- "pushea y cerra [CSTR-XX]"
-- "termine con [tarea], pushea"
-- "subí los cambios de [CSTR-XX]"
-- "hace el push y cerrá la tarjeta"
+Triggers:
+- "vamos con [CSTR-XX]", "empecemos con [CSTR-XX]", "arranquemos [CSTR-XX]"
+- "[CSTR-XX]" suelto al inicio de la conversación
+- "pushea y cerra [CSTR-XX]", "termine con [tarea]"
+- "subí los cambios de [CSTR-XX]", "cerrá la tarjeta"
 - "marcar [CSTR-XX] como listo"
-- "empecemos con [CSTR-XX]"
 - "vamos a trabajar en [CSTR-XX]"
 
 ---
@@ -51,23 +69,30 @@ Esto te da el project key de Jira para ese repo (ej: CSTR, FONTE, etc).
 
 ## 🟢 INICIAR TAREA
 
-Cuando el usuario dice "empecemos con CSTR-42" o "vamos a trabajar en [issue]":
-o simplemente "{issue_key}" al inicio de la sesión.
+**Activación automática**: cuando el usuario dice "vamos con [issue]", "empecemos [issue]",
+o simplemente menciona un issue key al inicio.
 
 ```
 1. Detectar proyecto (flujo compartido) → obtener jira_project_key
 
-2. Transicionar issue a "En curso" vía MCP:
-   jira_transition_issue(issueKey="CSTR-42", transition="En curso")
+2. Traer el título del issue para contexto:
+   jira_get_issue(issueKey="{ISSUE_KEY}")
+   Mostrar el título al usuario
 
-3. Traer la última versión de main:
+3. Transicionar issue a "En curso" vía MCP:
+   jira_transition_issue(issueKey="{ISSUE_KEY}", transition="En curso")
+
+4. Traer la última versión de main:
    git checkout main
    git pull --rebase origin main
 
-4. Crear rama a partir de main actualizado:
-   git checkout -b fix/CSTR-42-descripcion-corta
+5. Crear rama a partir de main actualizado:
+   git checkout -b fix/{ISSUE_KEY}-descripcion-corta
 
-5. Mostrar el título del issue para contexto
+6. Confirmar al usuario:
+   ✅ {ISSUE_KEY} → En curso
+   Rama: fix/{ISSUE_KEY}-descripcion
+   Título: {summary del issue}
 ```
 
 ---
@@ -198,16 +223,17 @@ Cuando el usuario pregunta "qué tareas hay para [CLIENTE]" o "qué tengo pendie
 
 ## ⚠️ Reglas importantes
 
-1. **Nunca hacer push sin el issue key en el commit** — si el usuario no lo mencionó, preguntar.
-2. **Siempre hacer `git status` primero** — nunca asumir qué cambió.
-3. **El comentario en Jira con el hash del commit es obligatorio** — da trazabilidad.
-4. **Detectar el proyecto primero** — no hardcodear CSTR. Cada repo puede tener su propio project key.
-5. **Si el push falla**, no transicionar el issue. Resolver el error primero.
-6. **Si hay conflictos**, reportarlos y pedir instrucciones.
-7. **Transicionar vía MCP siempre** — no esperar webhooks de GitHub.
-8. **Usar el label del cliente** en la consulta de tareas pendientes para filtrar bien.
-9. **Verificar el estado del issue en Jira antes de cerrar** — si está en Backlog, preguntar; si ya está Listo, avisar.
-10. **Siempre traer la última versión de main (`git pull --rebase`)** antes de crear una rama nueva. Evita trabajar sobre código viejo.
+1. **ANTE CUALQUIER issue key {PROJECT}-{NUM}**, activar este skill automáticamente.
+2. **Nunca hacer push sin el issue key en el commit** — si el usuario no lo mencionó, preguntar.
+3. **Siempre hacer `git status` primero** — nunca asumir qué cambió.
+4. **El comentario en Jira con el hash del commit es obligatorio** — da trazabilidad.
+5. **Detectar el proyecto primero** — no hardcodear CSTR. Cada repo puede tener su propio project key.
+6. **Si el push falla**, no transicionar el issue. Resolver el error primero.
+7. **Si hay conflictos**, reportarlos y pedir instrucciones.
+8. **Transicionar vía MCP siempre** — no esperar webhooks de GitHub.
+9. **Usar el label del proyecto** en la consulta de tareas pendientes para filtrar bien.
+10. **Verificar el estado del issue en Jira antes de cerrar** — si está en Backlog, preguntar; si ya está Listo, avisar.
+11. **Siempre traer la última versión de main (`git pull --rebase`)** antes de crear una rama nueva. Evita trabajar sobre código viejo.
 
 ---
 
