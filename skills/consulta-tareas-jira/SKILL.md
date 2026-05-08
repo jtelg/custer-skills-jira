@@ -1,10 +1,10 @@
 ---
 name: consulta-tareas-jira
-description: "Consultar y crear tareas de Jira desde OpenCode. Detecta el proyecto desde el repo Git, consulta tareas pendientes o crea nuevas issues directamente. Trigger: preguntar por tareas, crear tareas, cargar tareas."
+description: "Consultar y crear tareas de Jira desde OpenCode. Detecta el proyecto desde el repo Git, consulta tareas pendientes o crea nuevas issues directamente. Incluye el nombre del sistema entre corchetes en el summary para identificar el proyecto en el tablero compartido. Trigger: preguntar por tareas, crear tareas, cargar tareas."
 license: MIT
 metadata:
   author: jtelg
-  version: "1.1"
+  version: "1.2"
 ---
 
 # SKILL: Consultar y crear tareas de Jira desde OpenCode
@@ -163,13 +163,18 @@ Obtiene `jira_project_key` y `cliente_nombre`.
 
 ### Paso 4 — Crear issue en Jira vía MCP
 
-La API devuelve `jira_label` (ej: "grupofontesis-v13") y `cliente_nombre`
-(ej: "GRUPO FONTE"). Usar AMBOS como labels:
+La API devuelve:
+- `nombre` — nombre del sistema (ej: "Catálogo multicars")
+- `jira_label` — label único del proyecto (ej: "multicars-next12")
+- `cliente_nombre` — nombre del cliente (ej: "CUSTER-DESARROLLO")
+
+**El `nombre` es CLAVE**: ponelo al inicio del summary entre corchetes para
+identificar el sistema en el tablero compartido de Jira:
 
 ```
 Herramienta: jira_create_issue
 Project key: {jira_project_key}
-Summary:     {lo que el usuario describió}
+Summary:     [{nombre}] {lo que el usuario describió}
 Issue type:  "Task" (por defecto)
 Description: {detalle, si el usuario dio más contexto}
 Priority:    {inferir del lenguaje: "urgente"=Highest, "importante"=High, etc}
@@ -199,7 +204,7 @@ el label correcto del proyecto va a Jira.
 
 ```
 ✅ CSTR-99 creado en GRUPO FONTE → Sistema de Gestión
-   "Resolver login que falla en mobile"
+   "[Sistema de Gestión] Resolver login que falla en mobile"
    Labels: GRUPO-FONTE, sistema-de-gestion
 ```
 
