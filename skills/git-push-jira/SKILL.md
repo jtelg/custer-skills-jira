@@ -181,11 +181,11 @@ Ver en Jira: https://custer-desarrollo.atlassian.net/browse/{ISSUE_KEY}
 Cuando el usuario pregunta "qué tareas hay para [CLIENTE]" o "qué tengo pendiente":
 
 ```
-1. Detectar proyecto (flujo compartido) → obtener jira_project_key y cliente_nombre
+1. Detectar proyecto (flujo compartido) → obtener jira_project_key, jira_label, cliente_nombre
 
-2. Consultar Jira:
+2. Consultar Jira filtrando por jira_label para traer SOLO las de este repo:
    jira_search(
-     jql="project = {KEY} AND labels = '{CLIENTE}' AND status != 'Listo' ORDER BY priority ASC, created DESC",
+     jql="project = {KEY} AND labels = '{jira_label}' AND status != 'Listo' ORDER BY priority ASC, created DESC",
      maxResults=10
    )
 

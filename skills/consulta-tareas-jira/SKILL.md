@@ -4,7 +4,7 @@ description: "Consultar y crear tareas de Jira desde OpenCode. Detecta el proyec
 license: MIT
 metadata:
   author: jtelg
-  version: "1.0"
+  version: "1.1"
 ---
 
 # SKILL: Consultar y crear tareas de Jira desde OpenCode
@@ -50,11 +50,11 @@ issue, or needs to see what's pending.
 
 3. Consultar API pública del backend
    → GET https://ai.custer.com.ar/api/proyectos/por-github?url={url}
-   → Devuelve el proyecto con jira_project_key y cliente_nombre
+   → Devuelve: jira_project_key, jira_label, cliente_nombre
 
 4. Según lo que pidió el usuario:
-   ├─ Consultar → jira_search (MCP)
-   └─ Crear     → jira_create_issue (MCP)
+   ├─ Consultar → jira_search (MCP)  — filtrar por labels = '{jira_label}'
+   └─ Crear     → jira_create_issue (MCP) — aplicar jira_label como label
 ```
 
 ---
@@ -115,28 +115,39 @@ No requiere headers de auth. Respuesta:
   "nombre": "Sistema de Gestión",
   "cliente_nombre": "GRUPO FONTE",
   "jira_project_key": "CSTR",
+  "jira_label": "grupofontesis-v13",
   "url_github": "https://github.com/jtelg/custer-ai-studio"
 }
 ```
 
 ### Paso 4 — Consultar Jira vía MCP
 
+La API devuelve `jira_label` (ej: `grupofontesis-v13`). **Usalo para filtrar**
+exclusivamente las tareas de este proyecto, no todo el Jira project:
+
 ```
 Herramienta: jira_search
-JQL: project = {KEY} AND status != 'Listo' ORDER BY created DESC
+JQL: project = {KEY} AND labels = '{jira_label}' AND status != 'Listo' ORDER BY created DESC
 Max results: 10
 ```
+
+> ⚠️ **Sin el filtro por `jira_label`**, si el Jira project tiene issues de varios
+> repos (ej: CSTR tiene multicars, gf-sis, custer-ai-studio), te van a aparecer
+> todas mezcladas. El `jira_label` es el identificador único de cada proyecto.
 
 ### Paso 5 — Mostrar resultados
 
 ```
-🎯 GRUPO FONTE → Sistema de Gestión
+🎯 GRUPO FONTE → Sistema de Gestión (grupofontesis-v13)
 
 Tareas pendientes (CSTR):
 
 ☐ CSTR-42  [En curso]  Resolver login que falla en mobile    → Alta
 ☐ CSTR-43  [Backlog]   Agregar exportación a PDF            → Media
 ```
+
+Solo deberían aparecer tareas cuyo label coincida con el `jira_label` del proyecto.
+Si ves tareas de otros proyectos, revisá que el JQL incluya el filtro por labels.
 
 Si no hay tareas: "📭 No hay tareas pendientes. ¡A darle!"
 
