@@ -1,6 +1,6 @@
 {
   "name": "@jtelgarecz/custer-skills-jira",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Skills globales de OpenCode para flujo de trabajo con Jira: consultar tareas y git-push + transiciones de issues",
   "keywords": [
     "opencode",
