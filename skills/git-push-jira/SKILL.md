@@ -4,7 +4,7 @@ description: "Git push + transicionar issues en Jira. Automatiza el flujo de ini
 license: MIT
 metadata:
   author: jtelg
-  version: "1.0"
+  version: "1.1"
 ---
 
 # SKILL: Git Push + Jira Close + Transiciones
@@ -60,10 +60,14 @@ o simplemente "{issue_key}" al inicio de la sesión.
 2. Transicionar issue a "En curso" vía MCP:
    jira_transition_issue(issueKey="CSTR-42", transition="En curso")
 
-3. Sugerir crear rama:
+3. Traer la última versión de main:
+   git checkout main
+   git pull --rebase origin main
+
+4. Crear rama a partir de main actualizado:
    git checkout -b fix/CSTR-42-descripcion-corta
 
-4. Mostrar el título del issue para contexto
+5. Mostrar el título del issue para contexto
 ```
 
 ---
@@ -95,7 +99,30 @@ jira_search(jql="project = {KEY} AND status = 'En curso' ORDER BY updated DESC",
 
 Mostrar la lista y preguntar cuál corresponde.
 
-### Paso 4 — Stage y commit
+### Paso 4 — Verificar estado del issue en Jira
+
+Antes de continuar, comprobar que tiene sentido cerrar el issue:
+
+```
+jira_get_issue(issueKey="{ISSUE_KEY}")
+```
+
+| Status actual | Qué hacer |
+|--------------|-----------|
+| **En curso** | Continuar normalmente |
+| **Backlog** / **Pendiente** | Preguntar: "El issue está en '{status}'. ¿Querés iniciarlo y cerrarlo en este mismo push?" Si dice sí → `jira_transition_issue({KEY}, "En curso")` primero, después seguir |
+| **Listo** | Informar que ya está cerrado. Preguntar si igual quiere pushear el código o fue un error |
+| Otro | Preguntar si está seguro de cerrarlo desde este estado |
+
+### Paso 5 — Stage y commit
+
+Primero verificar si hay cambios sin commitear:
+
+```bash
+git status --porcelain
+```
+
+**Si hay archivos modificados sin stage:**
 
 ```bash
 git add -A
@@ -114,7 +141,11 @@ git commit -m "<tipo>: <descripción breve> [{ISSUE_KEY}]"
 
 Guardar el hash del commit.
 
-### Paso 5 — Push
+**Si no hay cambios nuevos (ya commiteado):**
+→ Usar el último commit: `git log -1 --format="%h %s"`
+→ Confirmar con el usuario antes de pushear.
+
+### Paso 6 — Push
 
 ```bash
 git push origin <rama-actual>
@@ -122,7 +153,7 @@ git push origin <rama-actual>
 
 Capturar mensaje de éxito.
 
-### Paso 6 — Cerrar issue en Jira vía MCP
+### Paso 7 — Cerrar issue en Jira vía MCP
 
 ```
 jira_transition_issue(issueKey="{ISSUE_KEY}", transition="Listo")
@@ -134,7 +165,7 @@ jira_add_comment(
 
 No esperar webhooks — esto funciona siempre porque es directo vía MCP.
 
-### Paso 7 — Confirmación
+### Paso 8 — Confirmación
 
 ```
 ✅ Push exitoso
@@ -175,6 +206,8 @@ Cuando el usuario pregunta "qué tareas hay para [CLIENTE]" o "qué tengo pendie
 6. **Si hay conflictos**, reportarlos y pedir instrucciones.
 7. **Transicionar vía MCP siempre** — no esperar webhooks de GitHub.
 8. **Usar el label del cliente** en la consulta de tareas pendientes para filtrar bien.
+9. **Verificar el estado del issue en Jira antes de cerrar** — si está en Backlog, preguntar; si ya está Listo, avisar.
+10. **Siempre traer la última versión de main (`git pull --rebase`)** antes de crear una rama nueva. Evita trabajar sobre código viejo.
 
 ---
 
