@@ -1,8 +1,13 @@
 {
-  "name": "@jtelg/custer-skills-jira",
+  "name": "@jtelgarecz/custer-skills-jira",
   "version": "1.0.0",
   "description": "Skills globales de OpenCode para flujo de trabajo con Jira: consultar tareas y git-push + transiciones de issues",
-  "keywords": ["opencode", "skills", "jira", "custer"],
+  "keywords": [
+    "opencode",
+    "skills",
+    "jira",
+    "custer"
+  ],
   "license": "MIT",
   "author": "Julian Telgarcz <jtelgarcz@gmail.com>",
   "repository": {
@@ -14,7 +19,7 @@
   },
   "homepage": "https://github.com/jtelg/custer-skills-jira#readme",
   "bin": {
-    "custer-skills-jira": "./bin/cli.js"
+    "custer-skills-jira": "bin/cli.js"
   },
   "engines": {
     "node": ">=16"
