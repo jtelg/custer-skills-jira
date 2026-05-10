@@ -4,7 +4,7 @@ description: "INICIAR tarea (transicionar issue a En curso, crear rama), CERRAR 
 license: MIT
 metadata:
   author: jtelg
-  version: "1.2"
+  version: "1.3"
 ---
 
 # SKILL: Git Push + Jira Close + Transiciones
@@ -78,9 +78,11 @@ o simplemente menciona un issue key al inicio.
 2. Traer el título del issue para contexto:
    jira_get_issue(issueKey="{ISSUE_KEY}")
    Mostrar el título al usuario
+   (En OpenCode el tool real es `jira_jira_get_issue`)
 
 3. Transicionar issue a "En curso" vía MCP:
    jira_transition_issue(issueKey="{ISSUE_KEY}", transition="En curso")
+   (En OpenCode el tool real es `jira_jira_transition_issue`)
 
 4. Traer la última versión de main:
    git checkout main
@@ -119,7 +121,7 @@ Si el usuario mencionó explicitamente el issue (ej: CSTR-42), usarlo.
 Si NO lo mencionó, buscar issues "En curso" en Jira:
 
 ```
-jira_search(jql="project = {KEY} AND status = 'En curso' ORDER BY updated DESC", maxResults=5)
+jira_search_issues(jql="project = {KEY} AND status = 'En curso' ORDER BY updated DESC", maxResults=5)
 ```
 
 Mostrar la lista y preguntar cuál corresponde.
@@ -130,6 +132,7 @@ Antes de continuar, comprobar que tiene sentido cerrar el issue:
 
 ```
 jira_get_issue(issueKey="{ISSUE_KEY}")
+(En OpenCode el tool real es `jira_jira_get_issue`)
 ```
 
 | Status actual | Qué hacer |
@@ -186,6 +189,7 @@ jira_add_comment(
   issueKey="{ISSUE_KEY}",
   comment="Resuelto en commit {hash} - rama: {rama}"
 )
+(En OpenCode: jira_jira_transition_issue, jira_jira_add_comment)
 ```
 
 No esperar webhooks — esto funciona siempre porque es directo vía MCP.
@@ -209,7 +213,7 @@ Cuando el usuario pregunta "qué tareas hay para [CLIENTE]" o "qué tengo pendie
 1. Detectar proyecto (flujo compartido) → obtener jira_project_key, jira_label, cliente_nombre
 
 2. Consultar Jira filtrando por jira_label para traer SOLO las de este repo:
-   jira_search(
+   jira_search_issues(
      jql="project = {KEY} AND labels = '{jira_label}' AND status != 'Listo' ORDER BY priority ASC, created DESC",
      maxResults=10
    )

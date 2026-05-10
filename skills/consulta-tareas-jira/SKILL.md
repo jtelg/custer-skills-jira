@@ -4,7 +4,7 @@ description: "Consultar y crear tareas de Jira desde OpenCode. Detecta el proyec
 license: MIT
 metadata:
   author: jtelg
-  version: "1.2"
+  version: "1.3"
 ---
 
 # SKILL: Consultar y crear tareas de Jira desde OpenCode
@@ -126,10 +126,13 @@ La API devuelve `jira_label` (ej: `grupofontesis-v13`). **Usalo para filtrar**
 exclusivamente las tareas de este proyecto, no todo el Jira project:
 
 ```
-Herramienta: jira_search
+Herramienta: jira_search_issues
 JQL: project = {KEY} AND labels = '{jira_label}' AND status != 'Listo' ORDER BY created DESC
 Max results: 10
 ```
+
+> ⚠️ **Atención**: en OpenCode la herramienta se expone como `jira_jira_search_issues`
+> o simplemente `jira_search_issues`. Si una no funciona, probá la otra. 
 
 > ⚠️ **Sin el filtro por `jira_label`**, si el Jira project tiene issues de varios
 > repos (ej: CSTR tiene multicars, gf-sis, custer-ai-studio), te van a aparecer
@@ -173,6 +176,7 @@ identificar el sistema en el tablero compartido de Jira:
 
 ```
 Herramienta: jira_create_issue
+(En OpenCode el tool real es `jira_jira_create_issue`)
 Project key: {jira_project_key}
 Summary:     [{nombre}] {lo que el usuario describió}
 Issue type:  "Task" (por defecto)
