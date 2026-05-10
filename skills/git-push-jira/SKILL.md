@@ -4,7 +4,7 @@ description: "INICIAR tarea (transicionar issue a En curso, crear rama), CERRAR 
 license: MIT
 metadata:
   author: jtelg
-  version: "1.3"
+  version: "1.4"
 ---
 
 # SKILL: Git Push + Jira Close + Transiciones
@@ -64,6 +64,11 @@ El endpoint también busca variantes de la URL (con/sin .git, SSH a HTTPS)
 y como fallback busca por nombre del proyecto. Así cubre URLs tipeadas mal.
 
 Esto te da el project key de Jira para ese repo (ej: CSTR, FONTE, etc).
+
+> 🔴 **No uses `jira_auth_status` para verificar credenciales.** Las credenciales
+> están configuradas en `opencode.json`. El `auth_status` siempre devuelve `false`
+> al inicio aunque las herramientas funcionen. Llamá directamente a las herramientas
+> de Jira y si fallan por auth, reintentá automáticamente.
 
 ---
 

@@ -4,7 +4,7 @@ description: "Consultar y crear tareas de Jira desde OpenCode. Detecta el proyec
 license: MIT
 metadata:
   author: jtelg
-  version: "1.3"
+  version: "1.4"
 ---
 
 # SKILL: Consultar y crear tareas de Jira desde OpenCode
@@ -132,7 +132,12 @@ Max results: 10
 ```
 
 > ⚠️ **Atención**: en OpenCode la herramienta se expone como `jira_jira_search_issues`
-> o simplemente `jira_search_issues`. Si una no funciona, probá la otra. 
+> o simplemente `jira_search_issues`. Si una no funciona, probá la otra.
+>
+> 🔴 **No uses `jira_auth_status` para verificar antes.** Las credenciales están en
+> `opencode.json`. El `auth_status` siempre devuelve `false` al inicio aunque las
+> herramientas funcionen. Llamá a `jira_search_issues` directamente y si falla por
+> auth, reintentá automáticamente. 
 
 > ⚠️ **Sin el filtro por `jira_label`**, si el Jira project tiene issues de varios
 > repos (ej: CSTR tiene multicars, gf-sis, custer-ai-studio), te van a aparecer
