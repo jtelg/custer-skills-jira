@@ -214,25 +214,65 @@ gh pr create --title "<tipo>: <descripción> [{ISSUE_KEY}]" --body "## Summary\n
 
 Si el PR ya existe (rama ya pusheada antes), avisar y pasar al siguiente paso.
 
-### Paso 8 — Cerrar issue en Jira vía MCP
+### Paso 8 — Generar comentario detallado en Jira
+
+Antes de cerrar, obtené el diff completo de la rama para documentar los cambios:
+
+```bash
+git diff main...HEAD --stat   # Archivos modificados (resumen)
+git diff main...HEAD          # Diff completo
+```
+
+Con esa información, ARMÁ UN COMENTARIO DETALLADO describiendo qué se hizo.
+El formato del comentario debe ser:
 
 ```
-jira_transition_issue(issueKey="{ISSUE_KEY}", transition="Listo")
+## 🔍 Resumen
+[Explicación clara de qué se resolvió o implementó, en 2-4 oraciones]
+
+## 📁 Archivos modificados
+[lista de archivos con breve descripción de cada cambio]
+
+archivo/src/ruta.py — [qué cambió y por qué]
+otro/archivo.tsx — [qué se agregó/modificó/eliminó]
+
+## 🛠️ Detalle técnico
+[Si aplica, explicación más técnica de cómo se resolvió]
+```
+
+Ejemplo real:
+```
+## 🔍 Resumen
+Se corrigió el error donde las imágenes de vehículos no se actualizaban al subir nuevas.
+El problema era que el navegador cacheaba las URLs sin timestamp, mostrando siempre la imagen vieja.
+
+## 📁 Archivos modificados
+frontends/catalogo/src/components/ImageUploader.tsx — Se agregó timestamp anti-cache (?t=Date.now()) a la URL de cada imagen al subirla
+frontends/catalogo/src/hooks/useVehiculoImages.ts — Se modificó el hook para forzar refresco de imágenes después del upload
+
+## 🛠️ Detalle técnico
+Se usó el patrón de cache-busting con query params (?t=timestamp) que se genera al momento del upload. 
+La imagen nueva se guarda con el mismo nombre pero al cambiar el timestamp el navegador la descarga de nuevo.
+```
+
+### Paso 9 — Publicar comentario y cerrar issue
+
+```
 jira_add_comment(
   issueKey="{ISSUE_KEY}",
-  comment="Resuelto en commit {hash} - rama: {rama}"
+  comment="{comentario_detallado}"
 )
-(En OpenCode: jira_jira_transition_issue, jira_jira_add_comment)
+jira_transition_issue(issueKey="{ISSUE_KEY}", transition="Listo")
+(En OpenCode: jira_jira_add_comment, jira_jira_transition_issue)
 ```
 
-No esperar webhooks — esto funciona siempre porque es directo vía MCP.
-
-### Paso 9 — Confirmación
+### Paso 10 — Confirmación
 
 ```
 ✅ {ISSUE_KEY} → Listo
 Commit: abc1234
 PR: https://github.com/.../pull/123
+Comentario publicado con detalle de cambios.
 Ver en Jira: https://custer-desarrollo.atlassian.net/browse/{ISSUE_KEY}
 ```
 
