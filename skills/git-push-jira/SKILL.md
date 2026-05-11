@@ -1,6 +1,6 @@
 ---
 name: git-push-jira
-description: "INICIAR tarea (transicionar issue a En curso, crear rama), CERRAR tarea (commit con reference + push + transicionar a Listo). Trigger: mencionar issue key (CSTR-42), 'vamos a trabajar', 'empecemos con', 'pushea y cerra', 'marcar como listo', 'subí los cambios', 'cerrá la tarjeta'. CUALQUIER formato {PROJECT}-{NUM} activa este skill."
+description: "INICIAR tarea (cierra la anterior, transiciona a En curso, crear rama), CERRAR tarea (commit + push + PR + transicionar a Listo). Trigger: mencionar issue key (CSTR-42), 'vamos a trabajar', 'empecemos con', 'pushea y cerra', 'marcar como listo', 'subí los cambios', 'cerrá la tarjeta', 'generá un PR', 'creá el PR', 'termine con'. CUALQUIER formato {PROJECT}-{NUM} activa este skill."
 license: MIT
 metadata:
   author: jtelg
@@ -9,7 +9,7 @@ metadata:
 
 # SKILL: Git Push + Jira Close + Transiciones
 
-> Automatiza el flujo completo: iniciar tarea → commit + push → cerrar issue.
+> Automatiza el flujo completo: iniciar tarea → commit + push + PR → cerrar issue.
 > Detecta el proyecto automáticamente desde el repo Git.
 
 ---
@@ -19,9 +19,10 @@ metadata:
 **Cuando el usuario mencione un issue key de Jira** (ej: `CSTR-42`, `FONTE-7`, `MXTS-123`)
 **en cualquier contexto**, este skill DEBE activarse:
 
-- Si dice **"vamos con CSTR-42"** o **"empecemos CSTR-42"** → seguir **🟢 INICIAR TAREA**
-- Si dice **"pusheá y cerrá CSTR-42"** o **"terminé con CSTR-42"** → seguir **✅ CERRAR TAREA + PUSH**
+- Si dice **"vamos con CSTR-42"** o **"empecemos CSTR-42"** → seguir **🟢 INICIAR TAREA** (cierra la anterior si hay)
+- Si dice **"pusheá y cerrá CSTR-42"** o **"terminé con CSTR-42"** o **"generá un PR para CSTR-42"** o **"creá el PR"** → seguir **✅ CERRAR TAREA + PUSH**
 - Si solo dice el **issue key suelto** (ej: "CSTR-42") → asumir que quiere **iniciar la tarea**, preguntar si no está seguro
+- Si dice **"termine con esta y arranquemos CSTR-XX"** → primero cerrar la actual, luego iniciar la nueva
 
 **NO ESPERES a que el usuario pida explícitamente.** Si menciona un issue key,
 cargá este skill y ejecutá el flujo que corresponda.
@@ -33,7 +34,7 @@ cargá este skill y ejecutá el flujo que corresponda.
 Use this skill when the user:
 - Mentions a Jira issue key (`{PROJECT}-{NUM}`) — **siempre**
 - Wants to start working on a task
-- Wants to commit, push, or close a task
+- Wants to commit, push, create a PR, or close a task
 
 Triggers:
 - "vamos con [CSTR-XX]", "empecemos con [CSTR-XX]", "arranquemos [CSTR-XX]"
@@ -41,6 +42,8 @@ Triggers:
 - "pushea y cerra [CSTR-XX]", "termine con [tarea]"
 - "subí los cambios de [CSTR-XX]", "cerrá la tarjeta"
 - "marcar [CSTR-XX] como listo"
+- **"generá un PR para [CSTR-XX]", "creá el PR de [CSTR-XX]"**
+- **"termine con esta y arranquemos [CSTR-XX]"**
 - "vamos a trabajar en [CSTR-XX]"
 
 ---
@@ -80,23 +83,34 @@ o simplemente menciona un issue key al inicio.
 ```
 1. Detectar proyecto (flujo compartido) → obtener jira_project_key
 
-2. Traer el título del issue para contexto:
+2. ANTES de arrancar, cerrar la tarea anterior si hay alguna "En curso":
+   Buscar issues con status "En curso":
+   jira_search_issues(jql="project = {KEY} AND status = 'En curso' ORDER BY updated DESC", maxResults=3)
+
+   SI hay alguna Y es distinta a la nueva:
+     → Transicionarla a "Listo":
+        jira_transition_issue(issueKey="{ISSUE_ANTERIOR}", transition="Listo")
+     → Agregar comentario:
+        jira_add_comment(issueKey="{ISSUE_ANTERIOR}", comment="Cerrada automáticamente al iniciar {ISSUE_NUEVA}")
+     → Informar: "✅ {ISSUE_ANTERIOR} → Listo (cerrada al iniciar la nueva)"
+
+3. Traer el título del issue nuevo para contexto:
    jira_get_issue(issueKey="{ISSUE_KEY}")
    Mostrar el título al usuario
    (En OpenCode el tool real es `jira_jira_get_issue`)
 
-3. Transicionar issue a "En curso" vía MCP:
+4. Transicionar issue nuevo a "En curso" vía MCP:
    jira_transition_issue(issueKey="{ISSUE_KEY}", transition="En curso")
    (En OpenCode el tool real es `jira_jira_transition_issue`)
 
-4. Traer la última versión de main:
+5. Traer la última versión de main:
    git checkout main
    git pull --rebase origin main
 
-5. Crear rama a partir de main actualizado:
+6. Crear rama a partir de main actualizado:
    git checkout -b fix/{ISSUE_KEY}-descripcion-corta
 
-6. Confirmar al usuario:
+7. Confirmar al usuario:
    ✅ {ISSUE_KEY} → En curso
    Rama: fix/{ISSUE_KEY}-descripcion
    Título: {summary del issue}
@@ -104,23 +118,14 @@ o simplemente menciona un issue key al inicio.
 
 ---
 
-## ✅ CERRAR TAREA + PUSH
+## ✅ CERRAR TAREA + PUSH + PR
 
-Cuando el usuario dice "pushea y cerrá CSTR-42" o "termine con [tarea]":
+Cuando el usuario dice "pushea y cerrá CSTR-42", "termine con [tarea]", o **"generá un PR"**:
 
 ### Paso 1 — Detectar proyecto (flujo compartido)
 Obtener `jira_project_key` del proyecto actual.
 
-### Paso 2 — Verificar estado del repo
-
-```bash
-git status
-git diff --stat
-```
-
-Reportar qué archivos cambiaron antes de continuar.
-
-### Paso 3 — Determinar el issue key
+### Paso 2 — Determinar el issue key
 
 Si el usuario mencionó explicitamente el issue (ej: CSTR-42), usarlo.
 Si NO lo mencionó, buscar issues "En curso" en Jira:
@@ -130,6 +135,15 @@ jira_search_issues(jql="project = {KEY} AND status = 'En curso' ORDER BY updated
 ```
 
 Mostrar la lista y preguntar cuál corresponde.
+
+### Paso 3 — Verificar estado del repo
+
+```bash
+git status
+git diff --stat
+```
+
+Reportar qué archivos cambiaron antes de continuar.
 
 ### Paso 4 — Verificar estado del issue en Jira
 
@@ -186,7 +200,17 @@ git push origin <rama-actual>
 
 Capturar mensaje de éxito.
 
-### Paso 7 — Cerrar issue en Jira vía MCP
+### Paso 7 — Crear PR (si aplica)
+
+Si el usuario dijo "generá un PR" o "creá el PR", o no hay más commits pendientes:
+
+```bash
+gh pr create --title "<tipo>: <descripción> [{ISSUE_KEY}]" --body "## Summary\n- Implementa {ISSUE_KEY}\n\nCloses #{ISSUE_KEY}"
+```
+
+Si el PR ya existe (rama ya pusheada antes), avisar y pasar al siguiente paso.
+
+### Paso 8 — Cerrar issue en Jira vía MCP
 
 ```
 jira_transition_issue(issueKey="{ISSUE_KEY}", transition="Listo")
@@ -199,12 +223,12 @@ jira_add_comment(
 
 No esperar webhooks — esto funciona siempre porque es directo vía MCP.
 
-### Paso 8 — Confirmación
+### Paso 9 — Confirmación
 
 ```
-✅ Push exitoso
+✅ {ISSUE_KEY} → Listo
 Commit: abc1234
-{ISSUE_KEY} → Listo
+PR: https://github.com/.../pull/123
 Ver en Jira: https://custer-desarrollo.atlassian.net/browse/{ISSUE_KEY}
 ```
 
@@ -243,6 +267,7 @@ Cuando el usuario pregunta "qué tareas hay para [CLIENTE]" o "qué tengo pendie
 9. **Usar el label del proyecto** en la consulta de tareas pendientes para filtrar bien.
 10. **Verificar el estado del issue en Jira antes de cerrar** — si está en Backlog, preguntar; si ya está Listo, avisar.
 11. **Siempre traer la última versión de main (`git pull --rebase`)** antes de crear una rama nueva. Evita trabajar sobre código viejo.
+12. **Al iniciar una tarea nueva, cerrar automáticamente la anterior** si está "En curso".
 
 ---
 
