@@ -19,10 +19,11 @@ metadata:
 **Cuando el usuario mencione un issue key de Jira** (ej: `CSTR-42`, `FONTE-7`, `MXTS-123`)
 **en cualquier contexto**, este skill DEBE activarse:
 
-- Si dice **"vamos con CSTR-42"** o **"empecemos CSTR-42"** → seguir **🟢 INICIAR TAREA** (cierra la anterior si hay)
+- Si dice **"vamos con CSTR-42"** o **"empecemos CSTR-42"** → seguir **🟢 INICIAR TAREA**
 - Si dice **"pusheá y cerrá CSTR-42"** o **"terminé con CSTR-42"** o **"generá un PR para CSTR-42"** o **"creá el PR"** → seguir **✅ CERRAR TAREA + PUSH**
 - Si solo dice el **issue key suelto** (ej: "CSTR-42") → asumir que quiere **iniciar la tarea**, preguntar si no está seguro
-- Si dice **"termine con esta y arranquemos CSTR-XX"** → primero cerrar la actual, luego iniciar la nueva
+- Si dice **"bien", "listo", "siguiente", "sigamos", "terminamos", "próxima"** + issue key → primero preguntar si cerrar la anterior, luego iniciar la nueva
+- Si dice **"termine con esta y arranquemos CSTR-XX"** → asumir que quiere cerrar y empezar
 
 **NO ESPERES a que el usuario pida explícitamente.** Si menciona un issue key,
 cargá este skill y ejecutá el flujo que corresponda.
@@ -43,6 +44,7 @@ Triggers:
 - "subí los cambios de [CSTR-XX]", "cerrá la tarjeta"
 - "marcar [CSTR-XX] como listo"
 - **"generá un PR para [CSTR-XX]", "creá el PR de [CSTR-XX]"**
+- **"bien", "listo", "sigamos", "terminamos", "próxima"** + mención de issue
 - **"termine con esta y arranquemos [CSTR-XX]"**
 - "vamos a trabajar en [CSTR-XX]"
 
@@ -83,16 +85,18 @@ o simplemente menciona un issue key al inicio.
 ```
 1. Detectar proyecto (flujo compartido) → obtener jira_project_key
 
-2. ANTES de arrancar, cerrar la tarea anterior si hay alguna "En curso":
+2. ANTES de arrancar, verificar si hay otra tarea "En curso":
    Buscar issues con status "En curso":
    jira_search_issues(jql="project = {KEY} AND status = 'En curso' ORDER BY updated DESC", maxResults=3)
 
    SI hay alguna Y es distinta a la nueva:
-     → Transicionarla a "Listo":
-        jira_transition_issue(issueKey="{ISSUE_ANTERIOR}", transition="Listo")
-     → Agregar comentario:
-        jira_add_comment(issueKey="{ISSUE_ANTERIOR}", comment="Cerrada automáticamente al iniciar {ISSUE_NUEVA}")
-     → Informar: "✅ {ISSUE_ANTERIOR} → Listo (cerrada al iniciar la nueva)"
+     → PREGUNTAR al usuario: "Tenés {ISSUE_ANTERIOR} en 'En curso'. ¿La damos por terminada antes de arrancar?"
+     → Si dice sí:
+        - Transicionar a "Listo": jira_transition_issue(issueKey="{ISSUE_ANTERIOR}", transition="Listo")
+        - Comentar: jira_add_comment(issueKey="{ISSUE_ANTERIOR}", comment="Cerrada al iniciar {ISSUE_NUEVA}")
+        - Informar: "✅ {ISSUE_ANTERIOR} → Listo"
+     → Si dice no:
+        - Dejarla como está, seguir con la nueva
 
 3. Traer el título del issue nuevo para contexto:
    jira_get_issue(issueKey="{ISSUE_KEY}")
