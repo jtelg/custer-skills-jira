@@ -126,6 +126,11 @@ o simplemente menciona un issue key al inicio.
 
 Cuando el usuario dice "pushea y cerrá CSTR-42", "termine con [tarea]", o **"generá un PR"**:
 
+**⚠️ ANTES DE EMPEZAR: tres cosas que NUNCA pueden faltar al cerrar:**
+1. **Comentario detallado en Jira** — con archivos modificados, rutas, y resumen (Paso 8).
+2. **Transición a "Listo"** — siempre después del comentario (Paso 9).
+3. **Si no hay comentario, no cierres.** El comentario NO es opcional.
+
 ### Paso 1 — Detectar proyecto (flujo compartido)
 Obtener `jira_project_key` del proyecto actual.
 
@@ -214,45 +219,54 @@ gh pr create --title "<tipo>: <descripción> [{ISSUE_KEY}]" --body "## Summary\n
 
 Si el PR ya existe (rama ya pusheada antes), avisar y pasar al siguiente paso.
 
-### Paso 8 — Generar comentario detallado en Jira
+### Paso 8 — Generar comentario detallado en Jira (OBLIGATORIO)
 
-Antes de cerrar, obtené el diff completo de la rama para documentar los cambios:
+**NUNCA cierres una tarea sin comentario.** Este paso NO es opcional.
+
+Obtené el diff completo de la rama para documentar los cambios:
 
 ```bash
-git diff main...HEAD --stat   # Archivos modificados (resumen)
-git diff main...HEAD          # Diff completo
+git diff main...HEAD --stat       # Archivos modificados (resumen con rutas)
+git diff main...HEAD --name-only  # Solo nombres de archivo (para la lista)
+git diff main...HEAD              # Diff completo (para entender qué cambió)
 ```
 
-Con esa información, ARMÁ UN COMENTARIO DETALLADO describiendo qué se hizo.
-El formato del comentario debe ser:
+ARMÁ UN COMENTARIO DETALLADO con este formato EXACTO:
 
 ```
 ## 🔍 Resumen
-[Explicación clara de qué se resolvió o implementó, en 2-4 oraciones]
+[2-4 oraciones explicando QUÉ se resolvió y POR QUÉ]
 
 ## 📁 Archivos modificados
-[lista de archivos con breve descripción de cada cambio]
-
-archivo/src/ruta.py — [qué cambió y por qué]
-otro/archivo.tsx — [qué se agregó/modificó/eliminó]
+[ruta/completa/del/archivo.ts — qué cambió y por qué]
+[otro/archivo.py — qué se agregó/modificó/eliminó]
+[CANTIDAD total de archivos cambiados]
 
 ## 🛠️ Detalle técnico
-[Si aplica, explicación más técnica de cómo se resolvió]
+[Explicación técnica de cómo se implementó la solución]
+[Patrones usados, decisiones de arquitectura]
 ```
 
-Ejemplo real:
+**REGLAS PARA LOS ARCHIVOS:**
+- Usá `git diff main...HEAD --name-only` para obtener las rutas EXACTAS.
+- NUNCA digas "varios archivos" o "los componentes". Nombralos UNO POR UNO.
+- Cada archivo va con su ruta completa desde la raíz del repo.
+- Para cada archivo, explicá EN UNA LÍNEA qué se modificó.
+
+**Ejemplo real de comentario bien hecho:**
 ```
 ## 🔍 Resumen
 Se corrigió el error donde las imágenes de vehículos no se actualizaban al subir nuevas.
 El problema era que el navegador cacheaba las URLs sin timestamp, mostrando siempre la imagen vieja.
+Se implementó cache-busting con query params para forzar la recarga.
 
-## 📁 Archivos modificados
+## 📁 Archivos modificados (2 archivos)
 frontends/catalogo/src/components/ImageUploader.tsx — Se agregó timestamp anti-cache (?t=Date.now()) a la URL de cada imagen al subirla
 frontends/catalogo/src/hooks/useVehiculoImages.ts — Se modificó el hook para forzar refresco de imágenes después del upload
 
 ## 🛠️ Detalle técnico
-Se usó el patrón de cache-busting con query params (?t=timestamp) que se genera al momento del upload. 
-La imagen nueva se guarda con el mismo nombre pero al cambiar el timestamp el navegador la descarga de nuevo.
+Se usó el patrón de cache-busting con query params (?t=timestamp) generado al momento del upload.
+La imagen nueva se guarda con el mismo nombre pero al cambiar el timestamp, el navegador la descarga de nuevo.
 ```
 
 ### Paso 9 — Publicar comentario y cerrar issue
