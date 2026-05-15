@@ -1,16 +1,31 @@
 ---
 name: git-push-jira
-description: "INICIAR tarea (cierra la anterior, transiciona a En curso, crear rama), CERRAR tarea (commit + push + PR + transicionar a Listo). Trigger: mencionar issue key (CSTR-42), 'vamos a trabajar', 'empecemos con', 'pushea y cerra', 'marcar como listo', 'subí los cambios', 'cerrá la tarjeta', 'generá un PR', 'creá el PR', 'termine con'. CUALQUIER formato {PROJECT}-{NUM} activa este skill."
+description: "INICIAR tarea (transicionar a En curso, crear rama), CERRAR tarea (commit + push + PR + COMENTARIO OBLIGATORIO + transicionar a Listo). NUNCA cerrar sin comentar. Trigger: mencionar issue key (CSTR-42), 'vamos a trabajar', 'empecemos con', 'pushea y cerra', 'marcar como listo', 'generá un PR', 'creá el PR', 'termine con'. CUALQUIER formato {PROJECT}-{NUM} activa este skill."
 license: MIT
 metadata:
   author: jtelg
-  version: "1.4"
+  version: "1.5"
 ---
 
 # SKILL: Git Push + Jira Close + Transiciones
 
-> Automatiza el flujo completo: iniciar tarea → commit + push + PR → cerrar issue.
+> Automatiza el flujo completo: iniciar tarea → commit + push + PR → comentar → cerrar issue.
 > Detecta el proyecto automáticamente desde el repo Git.
+
+---
+
+## 🚨 REGLA #1 — NUNCA CERRAR SIN COMENTAR
+
+**Esto es INAPELABLE. Si hacés `jira_jira_transition_issue(transition="Listo")` sin haber
+hecho ANTES `jira_jira_add_comment(...)`, estás ROMPIENDO EL FLUJO.**
+
+El orden correcto ES:
+```
+1. jira_jira_add_comment(...)   ← PRIMERO el comentario
+2. jira_jira_transition_issue(transition="Listo")  ← DESPUÉS la transición
+```
+
+**NUNCA al revés. Si ya transicionaste sin comentar, es un error crítico.**
 
 ---
 
