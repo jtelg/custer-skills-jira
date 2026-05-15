@@ -53,8 +53,8 @@ issue, or needs to see what's pending.
    → Devuelve: jira_project_key, jira_label, cliente_nombre
 
 4. Según lo que pidió el usuario:
-   ├─ Consultar → jira_search (MCP)  — filtrar por labels = '{jira_label}'
-   └─ Crear     → jira_create_issue (MCP) — aplicar jira_label como label
+  ├─ Consultar → jira_jira_search_issues (MCP)  — filtrar por labels = '{jira_label}'
+  └─ Crear     → jira_jira_create_issue (MCP) — aplicar jira_label como label
 ```
 
 ---
@@ -126,19 +126,15 @@ La API devuelve `jira_label` (ej: `grupofontesis-v13`). **Usalo para filtrar**
 exclusivamente las tareas de este proyecto, no todo el Jira project:
 
 ```
-Herramienta: jira_search_issues
+Herramienta: jira_jira_search_issues
 JQL: project = {KEY} AND labels = '{jira_label}' AND status != 'Listo' ORDER BY created DESC
 Max results: 10
 ```
 
-> ⚠️ **Atención**: en OpenCode la herramienta se expone como `jira_jira_search_issues`
-> o simplemente `jira_search_issues`. Si una no funciona, probá la otra.
->
 > 🔴 **No uses `jira_auth_status` para verificar antes.** Las credenciales están en
 > `opencode.json`. El `auth_status` siempre devuelve `false` al inicio aunque las
-> herramientas funcionen. Llamá a `jira_search_issues` directamente y si falla por
-> auth, reintentá automáticamente. 
-
+> herramientas funcionen. Llamá directo a las herramientas de Jira y si fallan por
+> auth, reintentá automáticamente.
 > ⚠️ **Sin el filtro por `jira_label`**, si el Jira project tiene issues de varios
 > repos (ej: CSTR tiene multicars, gf-sis, custer-ai-studio), te van a aparecer
 > todas mezcladas. El `jira_label` es el identificador único de cada proyecto.
@@ -180,8 +176,7 @@ La API devuelve:
 identificar el sistema en el tablero compartido de Jira:
 
 ```
-Herramienta: jira_create_issue
-(En OpenCode el tool real es `jira_jira_create_issue`)
+Herramienta: jira_jira_create_issue
 Project key: {jira_project_key}
 Summary:     [{nombre}] {lo que el usuario describió}
 Issue type:  "Task" (por defecto)

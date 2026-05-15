@@ -87,25 +87,25 @@ o simplemente menciona un issue key al inicio.
 
 2. ANTES de arrancar, verificar si hay otra tarea "En curso":
    Buscar issues con status "En curso":
-   jira_search_issues(jql="project = {KEY} AND status = 'En curso' ORDER BY updated DESC", maxResults=3)
+   jira_jira_search_issues(jql="project = {KEY} AND status = 'En curso' ORDER BY updated DESC", maxResults=3)
 
    SI hay alguna Y es distinta a la nueva:
      → PREGUNTAR al usuario: "Tenés {ISSUE_ANTERIOR} en 'En curso'. ¿La damos por terminada antes de arrancar?"
      → Si dice sí:
-        - Transicionar a "Listo": jira_transition_issue(issueKey="{ISSUE_ANTERIOR}", transition="Listo")
-        - Comentar: jira_add_comment(issueKey="{ISSUE_ANTERIOR}", comment="Cerrada al iniciar {ISSUE_NUEVA}")
+        - Transicionar a "Listo": jira_jira_transition_issue(issueKey="{ISSUE_ANTERIOR}", transition="Listo")
+        - Comentar: jira_jira_add_comment(issueKey="{ISSUE_ANTERIOR}", comment="Cerrada al iniciar {ISSUE_NUEVA}")
         - Informar: "✅ {ISSUE_ANTERIOR} → Listo"
      → Si dice no:
         - Dejarla como está, seguir con la nueva
 
 3. Traer el título del issue nuevo para contexto:
-   jira_get_issue(issueKey="{ISSUE_KEY}")
+   jira_jira_get_issue(issueKey="{ISSUE_KEY}")
    Mostrar el título al usuario
-   (En OpenCode el tool real es `jira_jira_get_issue`)
+
 
 4. Transicionar issue nuevo a "En curso" vía MCP:
-   jira_transition_issue(issueKey="{ISSUE_KEY}", transition="En curso")
-   (En OpenCode el tool real es `jira_jira_transition_issue`)
+   jira_jira_transition_issue(issueKey="{ISSUE_KEY}", transition="En curso")
+
 
 5. Traer la última versión de main:
    git checkout main
@@ -140,7 +140,7 @@ Si el usuario mencionó explicitamente el issue (ej: CSTR-42), usarlo.
 Si NO lo mencionó, buscar issues "En curso" en Jira:
 
 ```
-jira_search_issues(jql="project = {KEY} AND status = 'En curso' ORDER BY updated DESC", maxResults=5)
+jira_jira_search_issues(jql="project = {KEY} AND status = 'En curso' ORDER BY updated DESC", maxResults=5)
 ```
 
 Mostrar la lista y preguntar cuál corresponde.
@@ -159,14 +159,14 @@ Reportar qué archivos cambiaron antes de continuar.
 Antes de continuar, comprobar que tiene sentido cerrar el issue:
 
 ```
-jira_get_issue(issueKey="{ISSUE_KEY}")
+jira_jira_get_issue(issueKey="{ISSUE_KEY}")
 (En OpenCode el tool real es `jira_jira_get_issue`)
 ```
 
 | Status actual | Qué hacer |
 |--------------|-----------|
 | **En curso** | Continuar normalmente |
-| **Backlog** / **Pendiente** | Preguntar: "El issue está en '{status}'. ¿Querés iniciarlo y cerrarlo en este mismo push?" Si dice sí → `jira_transition_issue({KEY}, "En curso")` primero, después seguir |
+| **Backlog** / **Pendiente** | Preguntar: "El issue está en '{status}'. ¿Querés iniciarlo y cerrarlo en este mismo push?" Si dice sí → `jira_jira_transition_issue({KEY}, "En curso")` primero, después seguir |
 | **Listo** | Informar que ya está cerrado. Preguntar si igual quiere pushear el código o fue un error |
 | Otro | Preguntar si está seguro de cerrarlo desde este estado |
 
@@ -272,12 +272,11 @@ La imagen nueva se guarda con el mismo nombre pero al cambiar el timestamp, el n
 ### Paso 9 — Publicar comentario y cerrar issue
 
 ```
-jira_add_comment(
+jira_jira_add_comment(
   issueKey="{ISSUE_KEY}",
   comment="{comentario_detallado}"
 )
-jira_transition_issue(issueKey="{ISSUE_KEY}", transition="Listo")
-(En OpenCode: jira_jira_add_comment, jira_jira_transition_issue)
+jira_jira_transition_issue(issueKey="{ISSUE_KEY}", transition="Listo")
 ```
 
 ### Paso 10 — Confirmación
@@ -300,7 +299,7 @@ Cuando el usuario pregunta "qué tareas hay para [CLIENTE]" o "qué tengo pendie
 1. Detectar proyecto (flujo compartido) → obtener jira_project_key, jira_label, cliente_nombre
 
 2. Consultar Jira filtrando por jira_label para traer SOLO las de este repo:
-   jira_search_issues(
+   jira_jira_search_issues(
      jql="project = {KEY} AND labels = '{jira_label}' AND status != 'Listo' ORDER BY priority ASC, created DESC",
      maxResults=10
    )
