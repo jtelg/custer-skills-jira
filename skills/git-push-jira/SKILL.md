@@ -1,10 +1,10 @@
 ---
 name: git-push-jira
-description: "INICIAR tarea (transicionar a En curso, crear rama), CERRAR tarea (commit + push + PR + COMENTARIO OBLIGATORIO + transicionar a Listo). NUNCA cerrar sin comentar. Trigger: mencionar issue key (CSTR-42), 'vamos a trabajar', 'empecemos con', 'pushea y cerra', 'marcar como listo', 'generá un PR', 'creá el PR', 'termine con'. CUALQUIER formato {PROJECT}-{NUM} activa este skill."
+description: "Trigger: CUALQUIER formato {PROJECT}-{NUM}, 'vamos con {PROJECT}-{NUM}', 'empecemos', 'arranquemos', 'pusheá y cerrá', 'cerrá {PROJECT}-{NUM}', 'terminé con', 'generá un PR', 'creá el PR', 'marcar como listo', 'termine con esta y arranquemos'. INICIAR tarea (transicionar a En curso, crear rama), CERRAR tarea (commit + push + PR + COMENTARIO OBLIGATORIO + transicionar a Listo). NUNCA cerrar sin comentar."
 license: MIT
 metadata:
   author: jtelg
-  version: "1.5"
+  version: "1.6"
 ---
 
 # SKILL: Git Push + Jira Close + Transiciones
@@ -16,13 +16,14 @@ metadata:
 
 ## 🚨 REGLA #1 — NUNCA CERRAR SIN COMENTAR
 
-**Esto es INAPELABLE. Si hacés `jira_jira_transition_issue(transition="Listo")` sin haber
+**Esto es INAPELABLE. Si hacés `jira_jira_transition_issue(issueIdOrKey="...", transitionId=<id_para_Listo>)` sin haber
 hecho ANTES `jira_jira_add_comment(...)`, estás ROMPIENDO EL FLUJO.**
 
 El orden correcto ES:
 ```
 1. jira_jira_add_comment(...)   ← PRIMERO el comentario
-2. jira_jira_transition_issue(transition="Listo")  ← DESPUÉS la transición
+2. jira_jira_get_transitions(issueIdOrKey="...", expand="transitions.fields") → buscar transición con to.name == "Listo"
+3. jira_jira_transition_issue(issueIdOrKey="...", transitionId=<id_encontrado>)  ← DESPUÉS la transición
 ```
 
 **NUNCA al revés. Si ya transicionaste sin comentar, es un error crítico.**
@@ -107,19 +108,25 @@ o simplemente menciona un issue key al inicio.
    SI hay alguna Y es distinta a la nueva:
      → PREGUNTAR al usuario: "Tenés {ISSUE_ANTERIOR} en 'En curso'. ¿La damos por terminada antes de arrancar?"
      → Si dice sí:
-        - Transicionar a "Listo": jira_jira_transition_issue(issueKey="{ISSUE_ANTERIOR}", transition="Listo")
-        - Comentar: jira_jira_add_comment(issueKey="{ISSUE_ANTERIOR}", comment="Cerrada al iniciar {ISSUE_NUEVA}")
-        - Informar: "✅ {ISSUE_ANTERIOR} → Listo"
+         - Transicionar a "Listo" (two-step):
+           a. jira_jira_get_transitions(issueIdOrKey="{ISSUE_ANTERIOR}", expand="transitions.fields")
+           b. Buscar transición cuyo to.name == "Listo" (case-insensitive)
+           c. jira_jira_transition_issue(issueIdOrKey="{ISSUE_ANTERIOR}", transitionId=<id_encontrado>)
+         - Comentar: jira_jira_add_comment(issueIdOrKey="{ISSUE_ANTERIOR}", comment="Cerrada al iniciar {ISSUE_NUEVA}")
+         - Informar: "✅ {ISSUE_ANTERIOR} → Listo"
      → Si dice no:
         - Dejarla como está, seguir con la nueva
 
 3. Traer el título del issue nuevo para contexto:
-   jira_jira_get_issue(issueKey="{ISSUE_KEY}")
+   jira_jira_get_issue(issueIdOrKey="{ISSUE_KEY}")
    Mostrar el título al usuario
 
 
-4. Transicionar issue nuevo a "En curso" vía MCP:
-   jira_jira_transition_issue(issueKey="{ISSUE_KEY}", transition="En curso")
+4. Transicionar issue nuevo a "En curso" vía MCP (two-step):
+   a. jira_jira_get_transitions(issueIdOrKey="{ISSUE_KEY}", expand="transitions.fields")
+   b. Buscar transición cuyo to.name == "En curso" (case-insensitive)
+   c. Si no hay transición a "En curso", reportar las disponibles y preguntar
+   d. jira_jira_transition_issue(issueIdOrKey="{ISSUE_KEY}", transitionId=<id_encontrado>)
 
 
 5. Traer la última versión de main:
@@ -174,14 +181,14 @@ Reportar qué archivos cambiaron antes de continuar.
 Antes de continuar, comprobar que tiene sentido cerrar el issue:
 
 ```
-jira_jira_get_issue(issueKey="{ISSUE_KEY}")
+jira_jira_get_issue(issueIdOrKey="{ISSUE_KEY}")
 (En OpenCode el tool real es `jira_jira_get_issue`)
 ```
 
 | Status actual | Qué hacer |
 |--------------|-----------|
 | **En curso** | Continuar normalmente |
-| **Backlog** / **Pendiente** | Preguntar: "El issue está en '{status}'. ¿Querés iniciarlo y cerrarlo en este mismo push?" Si dice sí → `jira_jira_transition_issue({KEY}, "En curso")` primero, después seguir |
+| **Backlog** / **Pendiente** | Preguntar: "El issue está en '{status}'. ¿Querés iniciarlo y cerrarlo en este mismo push?" Si dice sí → usar `jira_jira_get_transitions(issueIdOrKey="{KEY}", expand="transitions.fields")` para buscar transición a "En curso", luego `jira_jira_transition_issue(issueIdOrKey="{KEY}", transitionId=<id_encontrado>)` primero, después seguir |
 | **Listo** | Informar que ya está cerrado. Preguntar si igual quiere pushear el código o fue un error |
 | Otro | Preguntar si está seguro de cerrarlo desde este estado |
 
@@ -284,14 +291,27 @@ Se usó el patrón de cache-busting con query params (?t=timestamp) generado al 
 La imagen nueva se guarda con el mismo nombre pero al cambiar el timestamp, el navegador la descarga de nuevo.
 ```
 
-### Paso 9 — Publicar comentario y cerrar issue
+### ⛔ CHECKLIST OBLIGATORIO ANTES DE TRANSICIONAR
+☐ ¿Se generó un comentario detallado en Jira con archivos modificados?
+☐ ¿Se verificó que el comentario se publicó exitosamente?
+☐ SI ALGUNA RESPUESTA ES "NO" → DETENERSE. NO transicionar.
+
+### Paso 9 — Publicar comentario, verificar y cerrar issue
 
 ```
 jira_jira_add_comment(
-  issueKey="{ISSUE_KEY}",
+  issueIdOrKey="{ISSUE_KEY}",
   comment="{comentario_detallado}"
 )
-jira_jira_transition_issue(issueKey="{ISSUE_KEY}", transition="Listo")
+
+6a. Verificar que el comentario se publicó exitosamente:
+    → Si jira_jira_add_comment falló, reintentar antes de continuar
+    → Si no se puede publicar, informar al usuario y NO transicionar
+
+jira_jira_get_transitions(issueIdOrKey="{ISSUE_KEY}", expand="transitions.fields")
+→ Buscar transición cuyo to.name == "Listo" (case-insensitive)
+→ Si no se encuentra transición a "Listo", reportar las disponibles y preguntar
+jira_jira_transition_issue(issueIdOrKey="{ISSUE_KEY}", transitionId=<id_encontrado>)
 ```
 
 ### Paso 10 — Confirmación
@@ -340,6 +360,20 @@ Cuando el usuario pregunta "qué tareas hay para [CLIENTE]" o "qué tengo pendie
 10. **Verificar el estado del issue en Jira antes de cerrar** — si está en Backlog, preguntar; si ya está Listo, avisar.
 11. **Siempre traer la última versión de main (`git pull --rebase`)** antes de crear una rama nueva. Evita trabajar sobre código viejo.
 12. **Al iniciar una tarea nueva, cerrar automáticamente la anterior** si está "En curso".
+
+---
+
+## 🔧 MCP Tool Reference
+
+| MCP Tool | Parámetros correctos |
+|----------|----------------------|
+| jira_jira_transition_issue | issueIdOrKey, transitionId |
+| jira_jira_get_transitions | issueIdOrKey, expand |
+| jira_jira_add_comment | issueIdOrKey, body |
+| jira_jira_get_issue | issueIdOrKey |
+| jira_jira_search_issues | jql, maxResults |
+
+> ⚠️ **Importante**: Los parámetros en las herramientas MCP usan `issueIdOrKey` (NO `issueKey`) y `transitionId` (NO `transition`). Usar nombres incorrectos puede causar fallos silenciosos o errores de parámetro faltante.
 
 ---
 

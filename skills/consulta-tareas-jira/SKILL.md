@@ -1,6 +1,6 @@
 ---
 name: consulta-tareas-jira
-description: "Consultar y crear tareas de Jira desde OpenCode. Detecta el proyecto desde el repo Git, consulta tareas pendientes o crea nuevas issues directamente. Incluye el nombre del sistema entre corchetes en el summary para identificar el proyecto en el tablero compartido. Trigger: preguntar por tareas, crear tareas, cargar tareas."
+description: "Trigger: 'qué tareas hay', 'qué tenemos para hoy', 'qué estoy trabajando', 'mostrame las tareas', 'tareas pendientes', 'qué tengo que hacer', 'cómo vamos', 'creá una tarea', 'cargá esta tarea', 'nueva tarea', 'tomá request'. Consultar y crear tareas de Jira desde OpenCode. Detecta el proyecto desde el repo Git, consulta tareas pendientes o crea nuevas issues directamente. Incluye el nombre del sistema entre corchetes en el summary para identificar el proyecto en el tablero compartido."
 license: MIT
 metadata:
   author: jtelg
@@ -254,6 +254,20 @@ el label correcto del proyecto va a Jira.
 | Skill | Ubicación | Qué hace |
 |-------|-----------|----------|
 | git-push-jira | `git-push-jira/` | Git push + transicionar issues |
+
+---
+
+## 🔧 MCP Tool Reference
+
+| MCP Tool | Parámetros correctos |
+|----------|----------------------|
+| jira_jira_transition_issue | issueIdOrKey, transitionId |
+| jira_jira_get_transitions | issueIdOrKey, expand |
+| jira_jira_add_comment | issueIdOrKey, body |
+| jira_jira_get_issue | issueIdOrKey |
+| jira_jira_search_issues | jql, maxResults |
+
+> ⚠️ **Importante**: Los parámetros en las herramientas MCP usan `issueIdOrKey` (NO `issueKey`) y `transitionId` (NO `transition`). Usar nombres incorrectos puede causar fallos silenciosos o errores de parámetro faltante.
 
 ## Notas
 
