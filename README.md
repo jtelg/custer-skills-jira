@@ -10,6 +10,7 @@ vía MCP.
 |-------|-------------|
 | **consulta-tareas-jira** | Consultar tareas pendientes y crear nuevas issues |
 | **git-push-jira** | Iniciar tareas, commit + push + transicionar a Listo |
+| **publicar-presentacion** | Publicar, actualizar o borrar presentaciones HTML en Custer AI Studio (requiere `CAI_KEY`) |
 
 ## Instalación
 
