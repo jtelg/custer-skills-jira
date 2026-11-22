@@ -1,7 +1,8 @@
-# @jtelg/custer-skills-jira
+# @jtelgarecz/custer-skills-jira
 
-Skills globales de [OpenCode](https://opencode.ai/) para flujo de trabajo con
-Jira. Detecta el proyecto automáticamente desde el repo Git y opera sobre Jira
+Skills globales de [OpenCode](https://opencode.ai/) y
+[Claude Code](https://claude.com/claude-code) para el flujo de trabajo con
+Jira y Custer AI Studio. Detecta el proyecto automáticamente desde el repo Git y opera sobre Jira
 vía MCP.
 
 ## Skills incluidos
@@ -15,27 +16,42 @@ vía MCP.
 ## Instalación
 
 ```bash
-npx @jtelg/custer-skills-jira install
+npx @jtelgarecz/custer-skills-jira install
 ```
 
-Esto copia los skills a `~/.config/opencode/skills/`. Ya están disponibles para
-**todos los proyectos** que abras en OpenCode.
+Esto copia los skills a `~/.config/opencode/skills/` (OpenCode) y a
+`~/.claude/skills/` (Claude Code). Ya están disponibles para **todos los
+proyectos**.
+
+### API key de Custer AI Studio
+
+`publicar-presentacion` necesita una API key. Durante la instalación (en una
+terminal interactiva) el instalador la pide sin mostrarla, la valida contra
+`https://ai.custer.com.ar/api/agent-docs` y la guarda en
+`~/.config/custer/cai_key` con permisos `600`.
+
+1. Creá la key en `https://ai.custer.com.ar/config` → **API keys**.
+2. Pegala cuando el instalador la pida (Enter vacío para omitir).
+
+Para cambiarla después: `npx @jtelgarecz/custer-skills-jira set-key`. La
+variable de entorno `CAI_KEY`, si existe, tiene prioridad sobre el archivo.
 
 ## Comandos
 
 | Comando | Qué hace |
 |---------|----------|
-| `install` | Instala/actualiza los skills (default) |
+| `install` | Instala/actualiza los skills en OpenCode y Claude Code y configura la API key (default) |
 | `update` | Idéntico a install — re-copia la última versión |
-| `uninstall` | Remueve los skills de `~/.config/opencode/skills/` |
-| `status` | Muestra qué skills están instalados y su versión |
+| `set-key` | Configura o reemplaza la API key de Custer AI Studio |
+| `uninstall` | Remueve los skills de OpenCode y Claude Code (la key queda; borrala a mano) |
+| `status` | Muestra qué skills están instalados en cada herramienta y si hay key |
 | `version` | Muestra la versión del package |
 
 ## Requisitos
 
-- OpenCode con Jira MCP configurado (herramientas `jira_search`,
+- OpenCode o Claude Code, con Jira MCP configurado (herramientas `jira_search`,
   `jira_create_issue`, `jira_transition_issue`, `jira_add_comment`)
-- Node.js >= 16
+- Node.js >= 16.7
 - Acceso a `https://ai.custer.com.ar/api/proyectos/por-github`
 
 ## Desarrollo

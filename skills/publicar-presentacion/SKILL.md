@@ -4,7 +4,7 @@ description: "Trigger: publicar/subir/actualizar/borrar presentación, display, 
 license: MIT
 metadata:
   author: "jtelg"
-  version: "1.0"
+  version: "1.1"
 ---
 
 ## Activation Contract
@@ -13,8 +13,9 @@ Use when the user asks to publish, upload, update, or delete an HTML presentatio
 
 ## Hard Rules
 
-- Authenticate only with the `CAI_KEY` env var (`Authorization: Bearer $CAI_KEY`). Never print, log, commit, or echo the key.
-- If `CAI_KEY` is unset, STOP and tell the user to create a key at `https://ai.custer.com.ar/config` → "API keys" and export it as `CAI_KEY`.
+- Resolve the key from the `CAI_KEY` env var, falling back to the file `~/.config/custer/cai_key` (written by the installer). Each shell call is fresh, so start every command with `K="${CAI_KEY:-$(cat ~/.config/custer/cai_key 2>/dev/null)}";` and send `Authorization: Bearer $K`.
+- Never print, log, commit, or echo the key, and never `cat` the key file on its own.
+- If no key resolves, STOP and tell the user to create one at `https://ai.custer.com.ar/config` → "API keys" and run `npx @jtelgarecz/custer-skills-jira set-key`.
 - The API docs are the source of truth: before the first call in a session, read `GET /api/agent-docs` (and `GET /api/agent-docs/modules/displays` if a contract detail is unclear). If they contradict this skill, follow the docs.
 - The slug is the stable identity: reuse the same slug to update. Lowercase letters, digits, hyphens only.
 - Publish a single self-contained `.html` (inline CSS/JS/images or absolute URLs). Multi-file sites go as ZIP via `POST /api/displays`.
@@ -32,7 +33,7 @@ Use when the user asks to publish, upload, update, or delete an HTML presentatio
 
 ## Execution Steps
 
-1. Verify `CAI_KEY` is set (`[ -n "$CAI_KEY" ]`), without printing it.
+1. Verify a key resolves without printing it: `K="${CAI_KEY:-$(cat ~/.config/custer/cai_key 2>/dev/null)}"; [ -n "$K" ] && echo ok || echo missing`.
 2. Read `/api/agent-docs` with the key.
 3. Decide the slug: reuse the one the user gave or already used for this deck; otherwise propose one from the title.
 4. Publish:
